@@ -160,8 +160,8 @@ export class Tensor {
 export class Neuron {
 
     input_width: number;
-    weights: number | number[];
-    biases: number | number[];
+    weights: Tensor | Tensor[];
+    biases: Tensor | Tensor[];
 
     constructor(input_width: number, activation: 'relu' | 'tanh' = 'relu', nobias: boolean = false) {
         this.input_width = input_width;
@@ -170,13 +170,13 @@ export class Neuron {
             this.weights = [];
             this.biases = [];
             for(let i = 0; i < this.input_width; i++) {
-                this.weights.push(randn());
-                this.biases.push(nobias ? 0 : randn());
+                this.weights.push(tensor(randn()));
+                this.biases.push(nobias ? tensor(0) : tensor(randn()));
             }
         } else {
             // single input neuron
-            this.weights = randn();
-            this.biases = nobias ? 0 : randn(); 
+            this.weights = tensor(randn());
+            this.biases = nobias ? tensor(0) : tensor(randn()); 
         }
     }
 
