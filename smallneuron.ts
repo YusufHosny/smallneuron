@@ -25,7 +25,7 @@ export class Tensor {
 
     clear_gradients(): void {
         this.grad = 0;
-        this.children.forEach(child => child.grad = 0)
+        this.children.forEach(child => child.clear_gradients());
     }
 
     // backward pass relative to this tensor
