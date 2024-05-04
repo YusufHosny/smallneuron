@@ -1,6 +1,6 @@
 {
   "name": "smallneuron",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Small backpropagation engine to build simple neural networks, written in Typescript.",
   "main": "index.ts",
   "repository": "https://github.com/YusufHosny/smallneuron.git",
