@@ -99,16 +99,14 @@ export class Tensor {
         return out
     }
 
-    pow(other: Tensorable): Tensor {
-        // if other is not a Tensor object, instantiate a leaf Tensor oject with other as the Tensor
-        const otherTensor = other instanceof Tensor ? other : new Tensor(other);
-
+    pow(other: number): Tensor {
+        // only supporting power to a number, not to a tensor
         // create the output Tensor object
-        const out = new Tensor(this.data ** otherTensor.data, [this], 'pow');
+        const out = new Tensor(this.data ** other, [this], 'pow');
 
         // define the backward function with the chain rule derivative of multiplication
         out.propagate_backward = () => {
-            this.grad += otherTensor.data * (this.data**(otherTensor.data-1)) * out.grad
+            this.grad += other * (this.data**(other-1)) * out.grad
         }
 
         return out
