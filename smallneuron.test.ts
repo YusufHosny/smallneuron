@@ -1,4 +1,5 @@
 import { tensor, neuron, layer, Tensor, Neuron, Layer } from './smallneuron';
+import { randn } from './smallneuron_utils';
 
 describe('Tensor Class Tests', () => {
     test('Test Addition (add method)', () => {
@@ -417,12 +418,43 @@ describe('Layer Class Tests', () => {
         expect(l.neurons.length).toBe(3);
     });
 
-    // Test other methods similarly...
+    test('Test Individual Layer', () => {
+        // Initialize layer with multiple neurons
+        const l: Layer = layer(3, 2);
+        expect(l.input_width).toBe(3);
+        expect(l.output_width).toBe(2);
+        expect(l.neurons.length).toBe(2);
+
+        const weights: Tensor[][] = l.neurons.map(n => n.weights instanceof Array ? n.weights : []);
+        const biases:  Tensor[][] = l.neurons.map(n => n.biases instanceof Array ? n.biases : []);
+
+        expect(weights.length).toBe(2);
+        expect(biases.length).toBe(2);
+
+        const inputs = [3.2, 4.1, 0.75];
+        const results = l.call(inputs);
+        const expecteds: number[] = l.neurons.map(neuron => inputs.map((input, i) => input*neuron.weights[i].data + neuron.biases[i].data).reduce((sum, current) => sum+current));
+
+        results.forEach((result, i) => expect(result.data).toBeCloseTo(expecteds[i]));
+
+        // could test backprop, unnecessary
+    });
 });
 
 describe('Utilities Tests', () => {
     test('Test Randn function', () => {
-       
+        // generate 10k values
+        const n: number = 10_000;
+        const nums: number[] = [];
+        for(let i = 0; i < n; i++) {
+            nums.push(randn());
+        }
+        const mean: number = nums.reduce((runningmean, current) => runningmean + current) / n;
+        const variance: number = nums.reduce((runningvariance, current) => runningvariance + ((current-mean)**2)) / (n-1);
+        const stdev: number = Math.sqrt(variance);
+
+        expect(mean).toBeCloseTo(0, 1);
+        expect(stdev).toBeCloseTo(1, 1);
     });
 
 });
