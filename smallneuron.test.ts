@@ -287,7 +287,7 @@ describe('Neuron Class Tests', () => {
         expect(n.call(3.2).data).toBeCloseTo(3.2*weight.data + bias.data);
         
         // multi-input neuron
-        n = neuron(3);
+        n = neuron(3, "relu");
 
         const weights: Tensor[] = n.weights instanceof Array ? n.weights : [];
         const biases: Tensor[] = n.biases instanceof Array ? n.biases : [];
@@ -412,13 +412,16 @@ describe('Layer Class Tests', () => {
         expect(l.neurons.length).toBe(1);
 
         // Initialize layer with multiple neurons
-        l = layer(2, 3);
+        l = layer(2, 3, "relu", true);
         expect(l.input_width).toBe(2);
         expect(l.output_width).toBe(3);
         expect(l.neurons.length).toBe(3);
     });
 
     test('Test Individual Layer', () => {
+        // initialize broken layer with width less than 1
+        const bl: Layer = layer(4,0);
+
         // Initialize layer with multiple neurons
         const l: Layer = layer(3, 2);
         expect(l.input_width).toBe(3);
