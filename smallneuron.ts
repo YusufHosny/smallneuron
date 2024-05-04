@@ -238,7 +238,7 @@ export class Layer {
     }
 
     // call layer function
-    call(inputs: Tensor[]): Tensor[] {
+    call(inputs: Tensor[] | Tensorable[]): Tensor[] {
         const output: Tensor[] = [];
 
         this.neurons.forEach(n => {
