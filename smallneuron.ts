@@ -213,7 +213,6 @@ export class Layer {
     
     input_width: number;
     output_width: number;
-    output: Tensor | Tensor[];
     neurons: Neuron[];
 
     constructor(input_width: number, output_width: number, activation: 'relu' | 'tanh' = 'relu', nobias: boolean = false) {
