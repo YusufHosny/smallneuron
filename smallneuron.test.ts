@@ -30,242 +30,222 @@ describe('Tensor Class Tests', () => {
         result = a.add(b);
         expect(result.data).toBe(10);
 
-        // test backpropagation through addition
-        result.backward();
-        expect(result.grad).toBe(1);
-        expect(a.grad).toBe(1);
-        expect(b.grad).toBe(1);
-
-        // longer graph with more additions
-        let c = tensor(-2);
-        let d = tensor(0);
-        let e = tensor(-5);
-
-        result = a.add(b.add(c)).add(d.add(e)); // a + (b+c) + (d+e) = 3
-        result.clear_gradients();
-        result.backward();
-        expect(result.grad).toBe(1);
-        expect(a.grad).toBe(1);
-        expect(b.grad).toBe(1);
-        expect(c.grad).toBe(1);
-        expect(d.grad).toBe(1);
-        expect(e.grad).toBe(1);
     });
 
     test('Test Negation (neg method)', () => {
-        // Add two positive numbers
-        let result = tensor(3).add(4);
-        expect(result.data).toBe(7);
-
-        // Add a positive and a negative number
-        result = tensor(5).add(-3);
-        expect(result.data).toBe(2);
-
-        // Add two negative numbers
-        result = tensor(-2).add(-3);
-        expect(result.data).toBe(-5);
-
-        // Add zero to a positive/negative number
-        result = tensor(5).add(0);
-        expect(result.data).toBe(5);
-        result = tensor(-3).add(0);
+        // negate positive number
+        let result = tensor(3).neg();
         expect(result.data).toBe(-3);
 
-        // Add with one operand being zero
-        result = tensor(0).add(5);
+        // negate a negative number
+        result = tensor(-5).neg();
         expect(result.data).toBe(5);
+
+        // negate 0
+        result = tensor(0).neg();
+        expect(result.data).toBeCloseTo(0);
     });
 
     test('Test Subtraction (sub method)', () => {
-        // Add two positive numbers
-        let result = tensor(3).add(4);
-        expect(result.data).toBe(7);
+        // Sub two positive numbers
+        let result = tensor(5).sub(4);
+        expect(result.data).toBe(1);
 
-        // Add a positive and a negative number
-        result = tensor(5).add(-3);
-        expect(result.data).toBe(2);
+        // Sub a positive and a negative number
+        result = tensor(5).sub(-3);
+        expect(result.data).toBe(8);
 
-        // Add two negative numbers
-        result = tensor(-2).add(-3);
-        expect(result.data).toBe(-5);
+        // Sub two negative numbers
+        result = tensor(-2).sub(-3);
+        expect(result.data).toBe(1);
 
-        // Add zero to a positive/negative number
-        result = tensor(5).add(0);
+        // Sub zero to a positive/negative number
+        result = tensor(5).sub(0);
         expect(result.data).toBe(5);
-        result = tensor(-3).add(0);
+        result = tensor(-3).sub(0);
         expect(result.data).toBe(-3);
 
-        // Add with one operand being zero
-        result = tensor(0).add(5);
-        expect(result.data).toBe(5);
+        // Sub with one operand being zero
+        result = tensor(0).sub(5);
+        expect(result.data).toBe(-5);
     });
 
     test('Test Multiplication (mul method)', () => {
-        // Add two positive numbers
-        let result = tensor(3).add(4);
-        expect(result.data).toBe(7);
+        // Mul two positive numbers
+        let result = tensor(3).mul(4);
+        expect(result.data).toBe(12);
 
-        // Add a positive and a negative number
-        result = tensor(5).add(-3);
-        expect(result.data).toBe(2);
+        // Mul a positive and a negative number
+        result = tensor(5).mul(-3);
+        expect(result.data).toBe(-15);
 
-        // Add two negative numbers
-        result = tensor(-2).add(-3);
-        expect(result.data).toBe(-5);
+        // Mul two negative numbers
+        result = tensor(-2).mul(-3);
+        expect(result.data).toBe(6);
 
-        // Add zero to a positive/negative number
-        result = tensor(5).add(0);
-        expect(result.data).toBe(5);
-        result = tensor(-3).add(0);
-        expect(result.data).toBe(-3);
+        // Mul zero with a positive/negative number
+        result = tensor(5).mul(0);
+        expect(result.data).toBeCloseTo(0);
+        result = tensor(-3).mul(0);
+        expect(result.data).toBeCloseTo(0);
 
-        // Add with one operand being zero
-        result = tensor(0).add(5);
-        expect(result.data).toBe(5);
+        // Mul with one operand being zero
+        result = tensor(0).mul(5);
+        expect(result.data).toBeCloseTo(0);
     });
 
     test('Test Exponentiation (pow method)', () => {
-        // Add two positive numbers
-        let result = tensor(3).add(4);
-        expect(result.data).toBe(7);
+        // exponentiate two positive numbers
+        let result = tensor(3).pow(4);
+        expect(result.data).toBe(81);
 
-        // Add a positive and a negative number
-        result = tensor(5).add(-3);
-        expect(result.data).toBe(2);
+        // exponentiate a positive and a negative number
+        result = tensor(5).pow(-3);
+        expect(result.data).toBe(1/125);
 
-        // Add two negative numbers
-        result = tensor(-2).add(-3);
-        expect(result.data).toBe(-5);
+        // exponentiate two negative numbers
+        result = tensor(-2).pow(-3);
+        expect(result.data).toBe(-0.125);
 
-        // Add zero to a positive/negative number
-        result = tensor(5).add(0);
-        expect(result.data).toBe(5);
-        result = tensor(-3).add(0);
-        expect(result.data).toBe(-3);
+        // exponentiate to 0
+        result = tensor(5).pow(0);
+        expect(result.data).toBe(1);
+        result = tensor(-3).pow(0);
+        expect(result.data).toBe(1);
 
-        // Add with one operand being zero
-        result = tensor(0).add(5);
-        expect(result.data).toBe(5);
+        // exponentiate zero to a positive/negative number
+        result = tensor(0).pow(5);
+        expect(result.data).toBeCloseTo(0);
     });
 
     test('Test Euler\'s number Exponentiation (exp method)', () => {
-        // Add two positive numbers
-        let result = tensor(3).add(4);
-        expect(result.data).toBe(7);
+        // e to the power of a positive number
+        let result = tensor(3).exp();
+        expect(result.data).toBeCloseTo(20.0855369232, 4);
 
-        // Add a positive and a negative number
-        result = tensor(5).add(-3);
-        expect(result.data).toBe(2);
+        // e to the power of a negative number
+        result = tensor(-5).exp();
+        expect(result.data).toBeCloseTo(0.00673794699, 4);
 
-        // Add two negative numbers
-        result = tensor(-2).add(-3);
-        expect(result.data).toBe(-5);
-
-        // Add zero to a positive/negative number
-        result = tensor(5).add(0);
-        expect(result.data).toBe(5);
-        result = tensor(-3).add(0);
-        expect(result.data).toBe(-3);
-
-        // Add with one operand being zero
-        result = tensor(0).add(5);
-        expect(result.data).toBe(5);
+        // e to the power of 0
+        result = tensor(0).exp();
+        expect(result.data).toBeCloseTo(1, 4);
     });
 
     test('Test Reciprocation (inv method)', () => {
-        // Add two positive numbers
-        let result = tensor(3).add(4);
-        expect(result.data).toBe(7);
+        // reciprocate positive number
+        let result = tensor(3).inv();
+        expect(result.data).toBe(1/3);
 
-        // Add a positive and a negative number
-        result = tensor(5).add(-3);
-        expect(result.data).toBe(2);
+        // reciprocate positive number
+        result = tensor(-5).inv();
+        expect(result.data).toBe(-0.2);
 
-        // Add two negative numbers
-        result = tensor(-2).add(-3);
-        expect(result.data).toBe(-5);
-
-        // Add zero to a positive/negative number
-        result = tensor(5).add(0);
-        expect(result.data).toBe(5);
-        result = tensor(-3).add(0);
-        expect(result.data).toBe(-3);
-
-        // Add with one operand being zero
-        result = tensor(0).add(5);
-        expect(result.data).toBe(5);
+        // reciprocate 0
+        result = tensor(0).inv();
+        expect(result.data).toBe(Infinity);
     });
 
     test('Test Division (div method)', () => {
-        // Add two positive numbers
-        let result = tensor(3).add(4);
-        expect(result.data).toBe(7);
+        // divide two positive numbers
+        let result = tensor(3).div(4);
+        expect(result.data).toBe(0.75);
 
-        // Add a positive and a negative number
-        result = tensor(5).add(-3);
-        expect(result.data).toBe(2);
+        // divide a positive and a negative number
+        result = tensor(5).div(-3);
+        expect(result.data).toBeCloseTo(-5/3);
 
-        // Add two negative numbers
-        result = tensor(-2).add(-3);
-        expect(result.data).toBe(-5);
+        // divide two negative numbers
+        result = tensor(-2).div(-3);
+        expect(result.data).toBeCloseTo(2/3);
 
-        // Add zero to a positive/negative number
-        result = tensor(5).add(0);
-        expect(result.data).toBe(5);
-        result = tensor(-3).add(0);
-        expect(result.data).toBe(-3);
-
-        // Add with one operand being zero
-        result = tensor(0).add(5);
-        expect(result.data).toBe(5);
+        // divide by zero
+        result = tensor(5).div(0);
+        expect(result.data).toBe(Infinity);
+        result = tensor(-3).div(0);
+        expect(result.data).toBe(-Infinity);
     });
 
     test('Test Tanh (tanh method)', () => {
-        // Add two positive numbers
-        let result = tensor(3).add(4);
-        expect(result.data).toBe(7);
+        // tanh positive number
+        let result = tensor(3).tanh();
+        expect(result.data).toBeCloseTo(0.995054754);
 
-        // Add a positive and a negative number
-        result = tensor(5).add(-3);
-        expect(result.data).toBe(2);
+        // tanh negative number
+        result = tensor(-0.4).tanh();
+        expect(result.data).toBeCloseTo(-0.37994896225);
 
-        // Add two negative numbers
-        result = tensor(-2).add(-3);
-        expect(result.data).toBe(-5);
-
-        // Add zero to a positive/negative number
-        result = tensor(5).add(0);
-        expect(result.data).toBe(5);
-        result = tensor(-3).add(0);
-        expect(result.data).toBe(-3);
-
-        // Add with one operand being zero
-        result = tensor(0).add(5);
-        expect(result.data).toBe(5);
+        // tanh 0
+        result = tensor(0).tanh();
+        expect(result.data).toBeCloseTo(0);
     });
 
     test('Test ReLU (relu method)', () => {
-        // Add two positive numbers
-        let result = tensor(3).add(4);
-        expect(result.data).toBe(7);
+        // relu positive number
+        let result = tensor(3).relu();
+        expect(result.data).toBeCloseTo(3);
 
-        // Add a positive and a negative number
-        result = tensor(5).add(-3);
-        expect(result.data).toBe(2);
+        // relu negative number
+        result = tensor(-0.4).relu();
+        expect(result.data).toBeCloseTo(0);
 
-        // Add two negative numbers
-        result = tensor(-2).add(-3);
-        expect(result.data).toBe(-5);
+        // relu 0
+        result = tensor(0).relu();
+        expect(result.data).toBeCloseTo(0);
+    });
 
-        // Add zero to a positive/negative number
-        result = tensor(5).add(0);
-        expect(result.data).toBe(5);
-        result = tensor(-3).add(0);
-        expect(result.data).toBe(-3);
+    test('Test backpropagation (backward method and clear gradient method)', () => {
+        // backprop through a first complex graph
+        let a = tensor(2.7);
+        let b = tensor(0);
+        let c = tensor(-4);
+        let d = tensor(5);
+        let e = tensor(0.23);
+        let f = tensor(3);
 
-        // Add with one operand being zero
-        result = tensor(0).add(5);
-        expect(result.data).toBe(5);
+        // ((a + (((b-c)*d)/(e*d))) * (((-1/f).exp()).tanh()**3) * (a.relu().exp()/e)) / 1e2
+        let result =  a.add(b.sub(c).mul(d).div(e.mul(d))).mul(f.inv().neg().exp().tanh().pow(3)).mul(a.relu().exp().div(e)).div(1e2) 
+        // run backward pass
+        result.backward();
+
+        // check result validity
+        expect(result.data).toBeCloseTo(3.0198);
+
+        // check gradients (precalculated using torch)
+        expect(a.grad).toBeCloseTo(3.1701);
+        expect(b.grad).toBeCloseTo(0.6535);
+        expect(c.grad).toBeCloseTo(-0.6535);
+        expect(d.grad).toBeCloseTo(1.1102e-16);
+        expect(e.grad).toBeCloseTo(-24.4950);
+        expect(f.grad).toBeCloseTo(0.7299);
+
+        // clear gradients and try another complex graph
+        result.clear_gradients();
+
+        // check gradients to be zerod out
+        expect(a.grad).toBeCloseTo(0);
+        expect(b.grad).toBeCloseTo(0);
+        expect(c.grad).toBeCloseTo(0);
+        expect(d.grad).toBeCloseTo(0);
+        expect(e.grad).toBeCloseTo(0);
+        expect(f.grad).toBeCloseTo(0);
+
+        // ((-((-1/a**2).tanh()+((1/((-c).exp())))*d)).relu()**-3 - (-(f*(e+b))/(c*d)).exp()*1e4)/1e2
+        result =  (a.pow(2).inv().neg().tanh().add(c.neg().exp().inv().mul(d))).neg().relu().pow(-3).sub((f.mul(e.add(b)).div(c.mul(d)).neg().exp()).mul(1e4)).div(1e2);
+
+        // run backward pass
+        result.backward();
+
+        // check result validity
+        expect(result.data).toBeCloseTo(8.1381);
+
+        // check gradients (precalculated using torch)
+        expect(a.grad).toBeCloseTo(746.5344);
+        expect(b.grad).toBeCloseTo(-15.5265);
+        expect(c.grad).toBeCloseTo(684.6740);
+        expect(d.grad).toBeCloseTo(137.8276);
+        expect(e.grad).toBeCloseTo(-15.5265);
+        expect(f.grad).toBeCloseTo(-1.1904);
     });
 
     
