@@ -1,8 +1,9 @@
 {
   "name": "tests",
   "version": "1.0.0",
-  "description": "",
+  "description": "Small backpropagation engine to build simple neural networks, written in Typescript.",
   "main": "index.ts",
+  "repository": "https://github.com/YusufHosny/smallneuron.git",
   "scripts": {
     "test": "jest"
   },
