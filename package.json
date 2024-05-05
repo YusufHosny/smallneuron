@@ -10,6 +10,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "graphology": "^0.25.4",
+    "graphology-dag": "^0.4.1"
   },
   "devDependencies": {
     "@babel/core": "^7.24.5",
