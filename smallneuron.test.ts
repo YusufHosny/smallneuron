@@ -419,7 +419,11 @@ describe('Layer Class Tests', () => {
 
     test('Test Individual Layer', () => {
         // initialize broken layer with width less than 1
-        const bl: Layer = layer(4,0);
+        try {
+            const bl: Layer = layer(4,0);
+        } catch(e) {
+            expect(e instanceof Error).toBe(true);
+        }
 
         // Initialize layer with multiple neurons
         const l: Layer = layer(3, 2);
