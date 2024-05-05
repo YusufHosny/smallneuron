@@ -184,7 +184,7 @@ export class Neuron {
         let output: Tensor;
 
         // verify input dimensions
-        if(inputs instanceof Array && inputs.length != this.input_width) console.error("Neuron call error: incorrect input dimensions.");
+        if(inputs instanceof Array && inputs.length != this.input_width) throw new Error("Neuron call error: incorrect input dimensions.");
 
         // multi input neuron
         if(inputs instanceof Array) {
@@ -232,7 +232,7 @@ export class Layer {
             }
 
         } else {
-            console.error("Layer Creation Error: layer cannot have output width less than 1.");
+            throw new Error("Layer Creation Error: layer cannot have output width less than 1.");
         }
     }
 
