@@ -180,7 +180,7 @@ export class Neuron {
         }
     }
 
-    call(inputs: Tensor | Tensor[] | Tensorable | Tensorable[]): Tensor {
+    call(inputs: Tensorable | Tensorable[]): Tensor {
         let output: Tensor;
 
         // verify input dimensions
@@ -237,7 +237,7 @@ export class Layer {
     }
 
     // call layer function
-    call(inputs: Tensor[] | Tensorable[]): Tensor[] {
+    call(inputs: Tensorable[]): Tensor[] {
         const output: Tensor[] = [];
 
         this.neurons.forEach(n => {
