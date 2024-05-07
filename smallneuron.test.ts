@@ -258,55 +258,54 @@ describe('Neuron Class Tests', () => {
         let n: Neuron = neuron(1);
         expect(n.input_width).toBe(1);
         expect(n.weights instanceof Tensor).toBe(true);
-        expect(n.biases instanceof Tensor).toBe(true);
+        expect(n.bias instanceof Tensor).toBe(true);
 
-        n = neuron(1, 'relu', true);
+        n = neuron(1, "tanh", true);
+        expect(n.activationType).toBe("tanh");
         expect(n.input_width).toBe(1);
         expect(n.weights instanceof Tensor).toBe(true);
-        expect(n.biases instanceof Tensor).toBe(true);
+        expect(n.bias instanceof Tensor).toBe(true);
 
         // Initialize multi-input neuron
         n = neuron(3);
         expect(n.input_width).toBe(3);
         expect(Array.isArray(n.weights)).toBe(true);
-        expect(Array.isArray(n.biases)).toBe(true);
+        expect(n.bias instanceof Tensor).toBe(true);
 
-        if(n.weights instanceof Array && n.biases instanceof Array) { // it will be if tests pass
+        if(n.weights instanceof Array) { // it will be if tests pass
             expect(n.weights.length).toBe(3);
-            expect(n.biases.length).toBe(3);
         }
     });
 
     test('Test Individual Neuron', () => {
         // single input neuron
-        let n: Neuron = neuron(1);
+        let n: Neuron = neuron(1, 'tanh');
 
         const weight: Tensor = n.weights instanceof Tensor ? n.weights : tensor(0);
-        const bias: Tensor = n.biases instanceof Tensor ? n.biases : tensor(0);
+        let bias: Tensor = n.bias;
 
-        expect(n.call(3.2).data).toBeCloseTo(3.2*weight.data + bias.data);
+        expect(n.call(3.2).data).toBeCloseTo(tensor(3.2*weight.data + bias.data).tanh().data);
         
         // multi-input neuron
         n = neuron(3, "relu");
 
         const weights: Tensor[] = n.weights instanceof Array ? n.weights : [];
-        const biases: Tensor[] = n.biases instanceof Array ? n.biases : [];
+        bias = n.bias;
 
         expect(weights.length).toBe(3);
-        expect(biases.length).toBe(3);
 
         const inputs = [3.2, 4.1, 0.75];
         const result = n.call(inputs);
-        const expected = inputs.map((input, i) => input*weights[i].data+biases[i].data).reduce((sum, current) => sum+current);
+        const expected = tensor(inputs.map((input, i) => input*weights[i].data).reduce((sum, current) => sum+current) + bias.data).relu().data;
 
         expect(result.data).toBeCloseTo(expected);
 
         // backpropagation
         result.backward();
         for(let i = 0; i < 3; i++) {
-            expect(weights[i].grad).toBeCloseTo(inputs[i]);
-            expect(biases[i].grad).toBeCloseTo(1);
+            expect(weights[i].grad).toBeCloseTo(expected > 0 ? inputs[i] : 0);
         }
+        expect(bias.grad).toBeCloseTo(expected > 0 ? 1 : 0);
     });
 
     test('Test Network of Neurons', () => {
@@ -320,7 +319,7 @@ describe('Neuron Class Tests', () => {
 
         // put all weights into matrix
         const weights: Tensor[][] = ns[0].weights instanceof Array ? ns.map(n => n.weights instanceof Array ? n.weights : []) : [[]];
-        const biases: Tensor[][] = ns[0].biases instanceof Array ? ns.map(n => n.biases instanceof Array ? n.biases : []) : [[]];
+        const biases: Tensor[] = ns.map(n => n.bias);
         
         expect(weights.length).toBe(5);
         expect(biases.length).toBe(5);
@@ -330,14 +329,14 @@ describe('Neuron Class Tests', () => {
         const l2 = [ns[2].call(l1), ns[3].call(l1)];
         const result = ns[4].call(l2);
         const l1_expected = [
-            inputs.map((input, i) => input*weights[0][i].data+biases[0][i].data).reduce((sum, current) => sum+current), 
-            inputs.map((input, i) => input*weights[1][i].data+biases[1][i].data).reduce((sum, current) => sum+current)
+            tensor(inputs.map((input, i) => input*weights[0][i].data).reduce((sum, current) => sum+current)+biases[0].data).relu().data, 
+            tensor(inputs.map((input, i) => input*weights[1][i].data).reduce((sum, current) => sum+current)+biases[1].data).relu().data
         ]
         const l2_expected = [
-            l1_expected.map((input, i) => input*weights[2][i].data+biases[2][i].data).reduce((sum, current) => sum+current), 
-            l1_expected.map((input, i) => input*weights[3][i].data+biases[3][i].data).reduce((sum, current) => sum+current)
+            tensor(l1_expected.map((input, i) => input*weights[2][i].data).reduce((sum, current) => sum+current)+biases[2].data).relu().data, 
+            tensor(l1_expected.map((input, i) => input*weights[3][i].data).reduce((sum, current) => sum+current)+biases[3].data).relu().data
         ]
-        let expected = l2_expected.map((input, i) => input*weights[4][i].data+biases[4][i].data).reduce((sum, current) => sum+current);
+        let expected = tensor(l2_expected.map((input, i) => input*weights[4][i].data).reduce((sum, current) => sum+current)+biases[4].data).relu().data;
 
         expect(result.data).toBeCloseTo(expected);
 
@@ -345,7 +344,7 @@ describe('Neuron Class Tests', () => {
         result.backward();
 
         const weights_expected: number[][] = [];
-        const biases_expected: number[][] = [];
+        const bias_expected: number[] = [];
 
         const n1_weights_expected: number[] = [];
         const n2_weights_expected: number[] = [];
@@ -353,49 +352,63 @@ describe('Neuron Class Tests', () => {
         const n4_weights_expected: number[] = [];
         const n5_weights_expected: number[] = [];
 
-        const n1_biases_expected: number[] = [];
-        const n2_biases_expected: number[] = [];
-        const n3_biases_expected: number[] = [];
-        const n4_biases_expected: number[] = [];
-        const n5_biases_expected: number[] = [];
-
         // layer 3
         for(let i = 0; i < 2; i++) {
-            n5_weights_expected.push(l2_expected[i]);
-            n5_biases_expected.push(1);
+            n5_weights_expected.push(expected > 0 ? l2_expected[i] : 0);
         }
+        bias_expected.push(expected > 0 ? 1 : 0);
+
         // layer 2
         for(let i = 0; i < 2; i++) {
-            n3_weights_expected.push(l1_expected[i] * weights[4][0].data);
-            n4_weights_expected.push(l1_expected[i] * weights[4][1].data);
-            n3_biases_expected.push(weights[4][0].data);
-            n4_biases_expected.push(weights[4][1].data);
+            n3_weights_expected.push((l2_expected[0] > 0 && expected > 0 ? l1_expected[i] : 0) * weights[4][0].data);
+            n4_weights_expected.push((l2_expected[1] > 0 && expected > 0 ? l1_expected[i] : 0) * weights[4][1].data);
         }
+        bias_expected.push((l2_expected[1] > 0 && expected > 0) ? weights[4][1].data : 0);
+        bias_expected.push((l2_expected[0] > 0 && expected > 0) ? weights[4][0].data : 0);
+
         // layer 1
         for(let i = 0; i < 3; i++) {
-            n1_weights_expected.push(inputs[i] * (weights[2][0].data * weights[4][0].data + weights[3][0].data * weights[4][1].data));
-            n2_weights_expected.push(inputs[i] * (weights[2][1].data * weights[4][0].data + weights[3][1].data * weights[4][1].data));
-            n1_biases_expected.push(weights[2][0].data * weights[4][0].data + weights[3][0].data * weights[4][1].data);
-            n2_biases_expected.push(weights[2][1].data * weights[4][0].data + weights[3][1].data * weights[4][1].data); 
+            n1_weights_expected.push(
+                (l1_expected[0] > 0 && l2_expected[0] > 0 && expected > 0 ? inputs[i] : 0) * 
+                weights[2][0].data * weights[4][0].data + 
+                (l1_expected[0] > 0 && l2_expected[1] > 0 && expected > 0 ? inputs[i] : 0) * 
+                weights[3][0].data * weights[4][1].data
+            );
+            n2_weights_expected.push(
+                (l1_expected[1] > 0 && l2_expected[0] > 0 && expected > 0 ? inputs[i] : 0) * 
+                weights[2][1].data * weights[4][0].data +
+                (l1_expected[1] > 0 && l2_expected[1] > 0 && expected > 0 ? inputs[i] : 0) * 
+                weights[3][1].data * weights[4][1].data
+            );
         }
+        bias_expected.push(
+            (l1_expected[1] > 0 && l2_expected[0] > 0 && expected > 0 ? 1 : 0) *
+            weights[2][1].data * weights[4][0].data + 
+            (l1_expected[1] > 0 && l2_expected[1] > 0 && expected > 0 ? 1 : 0) * 
+            weights[3][1].data * weights[4][1].data
+        );
+        bias_expected.push(
+            (l1_expected[0] > 0 && l2_expected[0] > 0 && expected > 0 ? 1 : 0) *
+            weights[2][0].data * weights[4][0].data +
+            (l1_expected[0] > 0 && l2_expected[1] > 0 && expected > 0 ? 1 : 0) *
+            weights[3][0].data * weights[4][1].data
+        );
         
+
         weights_expected.push(n1_weights_expected);
         weights_expected.push(n2_weights_expected);
         weights_expected.push(n3_weights_expected);
         weights_expected.push(n4_weights_expected);
         weights_expected.push(n5_weights_expected);
 
-        biases_expected.push(n1_biases_expected);
-        biases_expected.push(n2_biases_expected);
-        biases_expected.push(n3_biases_expected);
-        biases_expected.push(n4_biases_expected);
-        biases_expected.push(n5_biases_expected);
+        bias_expected.reverse();
 
         [4,3,2,1,0].forEach(i => {
             [0,1].forEach(j => {
+                console.log(`${i}, ${j}`);
                 expect(weights[i][j].grad).toBeCloseTo(weights_expected[i][j]);
-                expect(biases[i][j].grad).toBeCloseTo(biases_expected[i][j]);
             });
+            expect(biases[i].grad).toBeCloseTo(bias_expected[i]);
         });
         
     });
@@ -432,14 +445,16 @@ describe('Layer Class Tests', () => {
         expect(l.neurons.length).toBe(2);
 
         const weights: Tensor[][] = l.neurons.map(n => n.weights instanceof Array ? n.weights : []);
-        const biases:  Tensor[][] = l.neurons.map(n => n.biases instanceof Array ? n.biases : []);
+        const biases:  Tensor[] = l.neurons.map(n => n.bias);
 
         expect(weights.length).toBe(2);
         expect(biases.length).toBe(2);
 
         const inputs = [3.2, 4.1, 0.75];
         const results = l.call(inputs);
-        const expecteds: number[] = l.neurons.map(neuron => inputs.map((input, i) => input*neuron.weights[i].data + neuron.biases[i].data).reduce((sum, current) => sum+current));
+        const expecteds: number[] = l.neurons.map(neuron => 
+            tensor(inputs.map((input, i) => input*neuron.weights[i].data).reduce((sum, current) => sum+current) + neuron.bias.data).relu().data
+        );
 
         results.forEach((result, i) => expect(result.data).toBeCloseTo(expecteds[i]));
 

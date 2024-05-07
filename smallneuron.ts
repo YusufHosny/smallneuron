@@ -206,16 +206,13 @@ export class Neuron {
         }
 
         // apply activation
-        switch(this.activationType) {
+        switch (this.activationType) {
             case 'relu':
                 output = output.relu();
                 break;
 
-            case 'tanh':
+            case "tanh":
                 output = output.tanh();
-                break;
-            
-            default:
                 break;
         }
         
