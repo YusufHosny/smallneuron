@@ -49,7 +49,8 @@ attributes: {
 	weights: Tensor | Tensor[];
 	// bias(es) of the neuron
 	biases: Tensor | Tensor[];
-
+	// activation type of neuron
+	activationType: "relu" | "tanh";
 }
 
 functions: {
