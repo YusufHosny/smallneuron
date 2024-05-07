@@ -405,7 +405,6 @@ describe('Neuron Class Tests', () => {
 
         [4,3,2,1,0].forEach(i => {
             [0,1].forEach(j => {
-                console.log(`${i}, ${j}`);
                 expect(weights[i][j].grad).toBeCloseTo(weights_expected[i][j]);
             });
             expect(biases[i].grad).toBeCloseTo(bias_expected[i]);
