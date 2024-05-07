@@ -192,7 +192,7 @@ export class Neuron {
             const srcsTensor = inputs.map((src: Tensor | Tensorable) => src instanceof Tensor ? src : tensor(src));
             output = tensor(0);
             for(let i = 0; i < this.input_width; i++) {
-                output = output.add(srcsTensor[i].mul(this.weights[i]));
+                output = output.add(srcsTensor[i].mul(this.weights instanceof Tensor ? this.weights : this.weights[i]));
             }
             output = output.add(this.bias);
         }

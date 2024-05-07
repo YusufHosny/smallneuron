@@ -11,23 +11,35 @@ export class ModelMetadata {
     learningRate: number;
     lossFunction: 'meanSquaredError';
     epochCount: number;
+    activationType: 'relu'|'tanh';
+    batch_size: number;
   
-    constructor(inputWidth: number, outputWidth: number, learningRate: number, activationType: 'linear'|'relu'|'sigmoid'|'tanh', lossFunction: 'meanSquaredError', epochCount: number) {
+    constructor(inputWidth: number, outputWidth: number, learningRate: number, activationType: 'relu'|'tanh', lossFunction: 'meanSquaredError', epochCount: number, batch_size: number) {
       this.inputWidth = inputWidth;
       this.outputWidth = outputWidth;
       this.learningRate = learningRate;
       this.lossFunction = lossFunction;
       this.epochCount = epochCount;
+      this.activationType = activationType;
+      this.batch_size = batch_size;
     }
   }
+
+
+export interface TrainingData {
+    inputs: sn.Tensorable[][];
+    outputs: sn.Tensorable[][];
+}
   
 export class GraphModel {
 
     metadata: ModelMetadata;
     graph: DirectedGraph;
 
-    inputs: sn.Tensor[];
+    inputs: sn.Tensorable[];
     outputs: sn.Tensor[];
+
+    parameters: sn.Tensor[];
 
 
 
@@ -38,53 +50,83 @@ export class GraphModel {
         if(dag.hasCycle(graph)) throw new Error("GraphModel Creation Error: Provided DAG is not acyclic (cycles found).");
         this.graph = graph;
 
-        // create io tensors, zero-ed out at the start
-        this.inputs = [];
-        for(let i = 0; i < this.metadata.inputWidth; i++) {
-            this.inputs.push(sn.tensor(0));
-        }
+        this.parameters = [];
+
+          
+        // parse nodes into neurons and layers
+        dag.forEachNodeInTopologicalOrder(this.graph, (node, attributes) => {
+            // node attributes should be in the format
+            // {
+            //  type: "Neuron" | "Layer" | "Input"
+            //  ?input_width: number
+            //  ?output_width: number
+            //  input_ids: string[]
+            //  output_ids: string[]
+            //  ?component: sn.Neuron | sn.Layer
+            //  ?input_index: number
+            //  ?nobias: boolean
+            // }
+
+            // if its a neuron or layer node get dependencies and add to model
+            if(attributes.type == "Neuron") {
+                const neuron = sn.neuron(attributes.input_width, attributes.activation, attributes.nobias);
+
+                // add parameters to model
+                if(neuron.weights instanceof Array) neuron.weights.forEach(weight => this.parameters.push(weight));
+                else this.parameters.push(neuron.weights);
+                this.parameters.push(neuron.bias);
+
+                this.graph.setNodeAttribute(node, "component", neuron);
+            } else if(attributes.type == "Layer") {
+                const layer = sn.layer(attributes.input_width, attributes.output_width, attributes.activation, attributes.nobias);
+
+                // add parameters to model
+                layer.neurons.forEach(neuron => {
+                    if(neuron.weights instanceof Array) neuron.weights.forEach(weight => this.parameters.push(weight));
+                    else this.parameters.push(neuron.weights);
+                    this.parameters.push(neuron.bias);
+                });
+
+                this.graph.setNodeAttribute(node, "component", layer);
+            }
+
+        });
+
+    }
+
+    forward(inputs: sn.Tensorable[]): sn.Tensor[] {
+        // validate input tensors
+        if(inputs.length != this.metadata.inputWidth) throw new Error("Forward Pass Error: inputs don't match expected width.")
+        this.inputs = inputs;
 
         // map out graph nodes to tf layers
         const nodeToTensorMap = new Map<string, sn.Tensor | sn.Tensor[]>();
 
         // parse nodes into neurons and layers
         dag.forEachNodeInTopologicalOrder(this.graph, (node, attributes) => {
-
             // if its a neuron or layer node get dependencies and add to model
-            if(node.includes('NEURON') || node.includes('LAYER')) {
+            if((attributes.type == "Input")) {
+                const input = inputs[attributes.input_index];
+                nodeToTensorMap.set(node, input instanceof sn.Tensor ? input : sn.tensor(input));
+            } else {
                 
-                // filter edges to only the edges that end at this node
-                const edgesToNode = this.graph.filterEdges(edge => 
-                this.graph.target(edge) == node
-                );
+                const srcs: sn.Tensor[] = [];
 
-                // get all nodes that have an edge to the current neuron
-                const srcNodes = edgesToNode.map(edge => this.graph.source(edge));
-                // get all layers associated with nodes in srcNodes
-                let srcNeurons: sn.Tensor[] = [];
-                srcNodes.forEach(srcNode => {
+                attributes.input_ids.forEach((srcNode: string) => {
                     // get node from node to layer map or from inputs
-                    const srcNeuron = nodeToTensorMap.get(srcNode);
+                    const src = nodeToTensorMap.get(srcNode);
 
                     // nullcheck
-                    if(srcNeuron == undefined) {
+                    if(src == undefined) {
                         throw new Error("GraphModel Creation Error: Neuron dependency undefined, DAG neuron requested before creation.");
                     } else {
-                        srcNeuron instanceof Array ? srcNeuron.forEach(n => srcNeurons.push(n)) : srcNeurons.push(srcNeuron);
+                        src instanceof Array ? src.forEach(n => srcs.push(n)) : srcs.push(src);
                     }
                 
                 });
 
-                // create new neuron from layer and sources
-                if(node.includes('NEURON')) {
-                    const currentNeuron: sn.Neuron = sn.neuron(srcNeurons.length, attributes.activation, attributes.nobias);
-
-                    nodeToTensorMap.set(node, currentNeuron.call(srcNeurons));
-                } else if(node.includes('LAYER')) {
-                    const currentLayer: sn.Layer = sn.layer(srcNeurons.length, attributes.output_width, attributes.activation, attributes.nobias);
-
-                    nodeToTensorMap.set(node, currentLayer.call(srcNeurons));
-                }
+                // call neuron/layer and get output tensor
+                nodeToTensorMap.set(node, attributes.component.call(srcs));
 
             }
 
@@ -92,11 +134,92 @@ export class GraphModel {
 
         // after parsing all neurons and layers filter to nodes without edges starting from them i.e. output nodes
         const outputNodes = this.graph.nodes().filter(node =>
-            !this.graph.edges().some(edge => this.graph.source(edge) == node)
+            this.graph.getNodeAttributes(node).output_ids.length == 0
         );
 
         // assign output tensors
-        this.outputs = outputNodes.flatMap(outputNode => nodeToTensorMap.get(outputNode) ?? sn.tensor(0));
+        this.outputs = outputNodes.flatMap(outputNode => {
+            const output = nodeToTensorMap.get(outputNode);
+            if(output == undefined) {
+                throw new Error("Forward Pass Failed: Output node not found in graph.");
+            } else {
+                return output
+            }
+        });
 
+        return this.outputs;
+    }
+
+    train(training_data: TrainingData) {
+
+        console.log(`training ${this.parameters.length} parameters for ${this.metadata.epochCount} epochs.`);
+
+        for(let epoch = 0; epoch < this.metadata.epochCount; epoch++) {
+            // create batch
+            const batch_indices: number[] = [];
+            for(let i = 0; i < this.metadata.batch_size; i++) {
+                batch_indices.push(Math.floor(Math.random()*(training_data.inputs.length)));
+            }
+
+            const batch_in: sn.Tensorable[][] = batch_indices.map(ix => training_data.inputs[ix]);
+            const batch_out: sn.Tensorable[][] = batch_indices.map(ix => training_data.outputs[ix]);
+            
+            // forward model
+            const outputs: sn.Tensor[][] = batch_in.map(inputs => this.forward(inputs));
+
+            // evaluate loss on batch
+            let loss = sn.tensor(0);
+            batch_out.forEach((output_set, i) => {
+                // loss
+                loss = loss.add(this.eval_loss(
+                    output_set.map(output => output instanceof sn.Tensor ? output : sn.tensor(output)), 
+                    outputs[i]
+                ));
+
+            });
+            loss = loss.div(batch_out.length);
+
+            // backward pass
+            this.parameters.forEach(parameter => {
+                parameter.grad = 0;
+            });
+
+            loss.backward();
+
+            // update parameters
+            this.parameters.forEach(parameter => {
+                parameter.data -= parameter.grad * this.metadata.learningRate;
+            });
+
+            if(epoch % (Math.floor(epoch/5))) {
+                // evaluate accuracy on batch
+                let accuracy: number = 0;
+                const flat_expected = batch_out.flat();
+                const flat_real = outputs.flat();
+                flat_expected.forEach((output, i) => {
+                    accuracy += Math.round((output instanceof sn.Tensor ? output.data : output) - flat_real[i].data) == 0 ? 1 : 0;
+                })
+                accuracy /= flat_expected.length;
+
+                // log epoch and measured loss and accuracy
+                console.log(`Epoch ${epoch} [evaluated loss: ${loss.data}, accuracy: ${accuracy}]`);
+            }
+
+        }
+    }
+
+    eval_loss(expected_outputs: sn.Tensor[], real_outputs: sn.Tensor[]): sn.Tensor {
+        if(expected_outputs.length != real_outputs.length) throw new Error("Loss Evaluation Error: lengths of expected result doesn't real length.");
+        let loss = sn.tensor(0);
+
+        if(this.metadata.lossFunction == "meanSquaredError") {
+            expected_outputs.forEach((expected, i) => {
+                loss = loss.add((expected.sub(real_outputs[i])).pow(2));
+            });
+            loss = loss.div(expected_outputs.length);
+        }
+
+
+        return loss;
     }
 }
