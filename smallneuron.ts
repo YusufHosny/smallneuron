@@ -161,22 +161,22 @@ export class Neuron {
 
     input_width: number;
     weights: Tensor | Tensor[];
-    biases: Tensor | Tensor[];
+    bias: Tensor;
+    activationType: 'relu' | 'tanh';
 
     constructor(input_width: number, activation: 'relu' | 'tanh' = 'relu', nobias: boolean = false) {
         this.input_width = input_width;
+        this.activationType = activation;
+        this.bias = nobias ? tensor(0) : tensor(randn()); 
         // multi input neuron
         if(input_width > 1) {
             this.weights = [];
-            this.biases = [];
             for(let i = 0; i < this.input_width; i++) {
                 this.weights.push(tensor(randn()));
-                this.biases.push(nobias ? tensor(0) : tensor(randn()));
             }
         } else {
             // single input neuron
             this.weights = tensor(randn());
-            this.biases = nobias ? tensor(0) : tensor(randn()); 
         }
     }
 
@@ -192,8 +192,9 @@ export class Neuron {
             const srcsTensor = inputs.map((src: Tensor | Tensorable) => src instanceof Tensor ? src : tensor(src));
             output = tensor(0);
             for(let i = 0; i < this.input_width; i++) {
-                output = output.add(srcsTensor[i].mul(this.weights[i]).add(this.biases[i]));
+                output = output.add(srcsTensor[i].mul(this.weights[i]));
             }
+            output = output.add(this.bias);
         }
         else {
             // map Tensorable into tensor
@@ -201,8 +202,23 @@ export class Neuron {
                 inputs = tensor(inputs);
             }
 
-            output = inputs.mul(this.weights instanceof Array ? this.weights[0] : this.weights).add(this.biases instanceof Array ? this.biases[0] : this.biases);
+            output = inputs.mul(this.weights instanceof Array ? this.weights[0] : this.weights).add(this.bias);
         }
+
+        // apply activation
+        switch(this.activationType) {
+            case 'relu':
+                output = output.relu();
+                break;
+
+            case 'tanh':
+                output = output.tanh();
+                break;
+            
+            default:
+                break;
+        }
+        
 
         return output;
     }
