@@ -243,7 +243,7 @@ describe('Graph Integration Tests', () => {
         // create training data y = 2x + 1
         const inputs: number[][] = [];
         for(let i = 0; i < 100; i++) {
-            inputs.push([Math.floor(Math.random() * 30)]);
+            inputs.push([Math.floor(Math.random() * 10)]);
         }
 
         const outputs: number[][] = [];

@@ -191,7 +191,7 @@ export class GraphModel {
                 parameter.data -= parameter.grad * this.metadata.learningRate;
             });
 
-            if(epoch % (Math.floor(epoch/5))) {
+            if(epoch % (Math.floor(this.metadata.epochCount/5)) == 0) {
                 // evaluate accuracy on batch
                 let accuracy: number = 0;
                 const flat_expected = batch_out.flat();
