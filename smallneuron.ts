@@ -163,11 +163,14 @@ export class Neuron {
     weights: Tensor | Tensor[];
     bias: Tensor;
     activationType: 'relu' | 'tanh';
+    nobias: boolean;
 
     constructor(input_width: number, activation: 'relu' | 'tanh' = 'relu', nobias: boolean = false) {
         this.input_width = input_width;
         this.activationType = activation;
-        this.bias = nobias ? tensor(0) : tensor(randn()); 
+        this.nobias = nobias;
+        this.bias = tensor(0);
+        
         // multi input neuron
         if(input_width > 1) {
             this.weights = [];
