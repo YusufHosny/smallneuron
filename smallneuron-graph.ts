@@ -74,7 +74,7 @@ export class GraphModel {
                 // add parameters to model
                 if(neuron.weights instanceof Array) neuron.weights.forEach(weight => this.parameters.push(weight));
                 else this.parameters.push(neuron.weights);
-                this.parameters.push(neuron.bias);
+                if(!neuron.nobias) this.parameters.push(neuron.bias);
 
                 this.graph.setNodeAttribute(node, "component", neuron);
             } else if(attributes.type == "Layer") {
@@ -139,22 +139,19 @@ export class GraphModel {
 
         // assign output tensors
         this.outputs = outputNodes.flatMap(outputNode => {
-            const output = nodeToTensorMap.get(outputNode);
-            if(output == undefined) {
-                throw new Error("Forward Pass Failed: Output node not found in graph.");
-            } else {
-                return output
-            }
+            return nodeToTensorMap.get(outputNode) ?? sn.tensor(0);
         });
 
         return this.outputs;
     }
 
-    train(training_data: TrainingData) {
+    train(training_data: TrainingData, log: boolean = false, num_epochs: number = this.metadata.epochCount): number[] {
 
-        console.log(`training ${this.parameters.length} parameters for ${this.metadata.epochCount} epochs.`);
+        if(log) console.log(`training ${this.parameters.length} parameters for ${num_epochs} epochs.`);
 
-        for(let epoch = 0; epoch < this.metadata.epochCount; epoch++) {
+        let losses: number[] = [];
+
+        for(let epoch = 0; epoch < num_epochs; epoch++) {
             // create batch
             const batch_indices: number[] = [];
             for(let i = 0; i < this.metadata.batch_size; i++) {
@@ -179,6 +176,8 @@ export class GraphModel {
             });
             loss = loss.div(batch_out.length);
 
+            losses.push(loss.data);
+
             // backward pass
             this.parameters.forEach(parameter => {
                 parameter.grad = 0;
@@ -191,7 +190,7 @@ export class GraphModel {
                 parameter.data -= parameter.grad * this.metadata.learningRate;
             });
 
-            if(epoch % (Math.floor(this.metadata.epochCount/5)) == 0) {
+            if(log  && ((epoch-1) % (Math.floor(num_epochs/10)) == 0) ) {
                 // evaluate accuracy on batch
                 let accuracy: number = 0;
                 const flat_expected = batch_out.flat();
@@ -206,6 +205,8 @@ export class GraphModel {
             }
 
         }
+
+        return losses;
     }
 
     eval_loss(expected_outputs: sn.Tensor[], real_outputs: sn.Tensor[]): sn.Tensor {
