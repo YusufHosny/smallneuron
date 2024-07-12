@@ -1,4 +1,4 @@
-import { randn } from './smallneuron_utils.ts';
+import { randn } from './smallneuron_utils';
 
 export type Operation = 'leaf' | 'add' | 'mul' | 'pow'| 'exp' | 'relu' | 'tanh';
 export type Tensorable = Tensor | number;
